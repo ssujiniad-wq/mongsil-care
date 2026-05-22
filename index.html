@@ -126,17 +126,45 @@ const blank={
 let DB=load();
 seedDefaults();
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY));return r?Object.assign({},structuredClone(blank),r):structuredClone(blank);}catch(e){return structuredClone(blank);}}
+// 아더마스(othermars.shop) 실제 제품 영양정보 — kcal100 = kcal/g×100 (급여기준 열량)
+// 주식(플래닛)은 단백/지방이 건물(DM)기준만 공개되어 비워두고 메모에 표기, 간식은 급여기준(as-fed) 값
+const ADERMAS=[
+  {name:"플래닛 치킨 360g",brand:"아더마스",type:"주식",kcal100:"119.8",protein:"",fat:"",fiber:"",unit:"g",note:"30g볼×12 · 1볼≈36kcal · 닭 · DM 단백83.6/지방9.0%"},
+  {name:"플래닛 포크 360g",brand:"아더마스",type:"주식",kcal100:"152.8",protein:"",fat:"",fiber:"",unit:"g",note:"30g볼×12 · 1볼≈46kcal · 돼지 · DM 단백73.7/지방19.5%"},
+  {name:"플래닛 비프 360g",brand:"아더마스",type:"주식",kcal100:"135.3",protein:"",fat:"",fiber:"",unit:"g",note:"30g볼×12 · 1볼≈41kcal · 소 · DM 단백81.2/지방11.6%"},
+  {name:"치킨져키 80g",brand:"아더마스",type:"간식",kcal100:"165",protein:"38.18",fat:"0.76",fiber:"0.09",unit:"g",note:"1개≈10g/16.5kcal"},
+  {name:"베이크 치킨 120g",brand:"아더마스",type:"간식",kcal100:"116",protein:"25.70",fat:"0.93",fiber:"0.19",unit:"g",note:"닭가슴살 98.5%"},
+  {name:"에그볼(포크&스윗펌킨)",brand:"아더마스",type:"간식",kcal100:"140",protein:"15.84",fat:"6.75",fiber:"0.40",unit:"g",note:"1개 30g/42kcal"},
+  {name:"포크칩 45g",brand:"아더마스",type:"간식",kcal100:"413",protein:"65.63",fat:"15.68",fiber:"0.97",unit:"g",note:"돼지등심 74.6% · 고열량 주의"},
+  {name:"치킨치즈볼",brand:"아더마스",type:"간식",kcal100:"163",protein:"24.43",fat:"6.46",fiber:"0.08",unit:"g",note:"1개 30g/48.9kcal"},
+  {name:"포크치즈볼",brand:"아더마스",type:"간식",kcal100:"209",protein:"26.08",fat:"11.19",fiber:"0.13",unit:"g",note:"1개 30g/62.6kcal"},
+  {name:"오리치즈볼",brand:"아더마스",type:"간식",kcal100:"171",protein:"23.22",fat:"7.86",fiber:"0.09",unit:"g",note:"1개 30g/51.1kcal"},
+  {name:"올데이 덕패티 100g",brand:"아더마스",type:"간식",kcal100:"145",protein:"28.93",fat:"2.41",fiber:"0.24",unit:"g",note:"오리"},
+  {name:"래빗볼",brand:"아더마스",type:"간식",kcal100:"189",protein:"23.93",fat:"10.24",fiber:"0.28",unit:"g",note:"토끼 단일단백"},
+  {name:"치킨수프 180g",brand:"아더마스",type:"간식",kcal100:"63",protein:"6.77",fat:"0.72",fiber:"0.80",unit:"g",note:"수분 많은 토퍼"}
+];
 function seedDefaults(){
-  // 최초 1회: 주로 먹는 제품을 미리 등록 (영양값은 라벨 보고 직접 입력)
-  if(DB._seeded)return;
-  if(!DB.products||!DB.products.length){
-    DB.products=[
-      {id:uid(),name:"아더마스",brand:"아더마스",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"포장 라벨의 100g당 kcal 입력"},
+  if(!DB.products)DB.products=[];
+  if(!DB.feed)DB.feed=[];
+  // 최초 1회: 레이앤이본 placeholder (영양값은 라벨 보고 직접 입력)
+  if(!DB._seeded){
+    DB.products.push(
       {id:uid(),name:"레이앤이본 사료",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"포장 라벨의 100g당 kcal 입력"},
       {id:uid(),name:"레이앤이본 영양제",brand:"레이앤이본",type:"영양제",kcal100:"",protein:"",fat:"",fiber:"",unit:"정",note:""}
-    ];
+    );
+    DB._seeded=true;
   }
-  DB._seeded=true; save();
+  // 아더마스 실제 제품 동기화 (idempotent: 사용자가 직접 채운 값은 보존)
+  if(DB._adermasV!==2){
+    DB.products=DB.products.filter(p=>!(p.name==="아더마스"&&!p.kcal100)); // 과거 빈 placeholder 제거
+    ADERMAS.forEach(a=>{
+      const ex=DB.products.find(p=>p.name===a.name);
+      if(!ex)DB.products.push({id:uid(),...a});
+      else if(!ex.kcal100)Object.assign(ex,a,{id:ex.id});
+    });
+    DB._adermasV=2;
+  }
+  save();
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(DB));}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -446,7 +474,7 @@ function feedProductPanel(){
       <div class="small" style="margin-top:3px">${p.kcal100?`🔥 100g당 ${p.kcal100} kcal`:'🔥 kcal 미입력'}${p.protein?` · 단백 ${p.protein}%`:''}${p.fat?` · 지방 ${p.fat}%`:''}${p.unit&&p.unit!=='g'?` · 단위 ${esc(p.unit)}`:''}</div>
       ${p.note?'<div class="small">'+esc(p.note)+'</div>':''}
       <button class="btn sec" onclick="editProduct('${p.id}')" style="margin-top:8px;padding:7px">영양정보 수정</button></div></div>`).join("")+`</div>`).join("");
-  return `<div class="hint">자주 먹는 제품을 등록하면 급여 기록 시 칼로리가 자동 계산됩니다. <b>포장 라벨의 100g당 kcal·단백질·지방%</b>를 입력해 두세요. (아더마스·레이앤이본 기본 등록됨 — 영양정보 수정으로 수치 채워주세요)</div>
+  return `<div class="hint"><b>아더마스(othermars.shop) 주식·간식 13종은 공식 영양정보(kcal)가 이미 입력</b>돼 있어요 — 급여 탭에서 제품 고르고 g만 넣으면 자동 계산됩니다. 레이앤이본 등 다른 제품은 라벨의 100g당 kcal를 직접 입력해 주세요.</div>
     ${lists}
     <div class="card"><h3>＋ 제품 추가</h3>
       <label>이름</label><input id="prName" placeholder="예: 아더마스">
