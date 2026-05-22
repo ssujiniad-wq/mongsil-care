@@ -124,7 +124,6 @@ const blank={
   lymph:[], daily:[], weight:[], bark:[], vet:[], care:[], products:[], feed:[]
 };
 let DB=load();
-seedDefaults();
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY));return r?Object.assign({},structuredClone(blank),r):structuredClone(blank);}catch(e){return structuredClone(blank);}}
 // 아더마스(othermars.shop) 실제 제품 영양정보 — kcal100 = kcal/g×100 (급여기준 열량)
 // 주식(플래닛)은 단백/지방이 건물(DM)기준만 공개되어 비워두고 메모에 표기, 간식은 급여기준(as-fed) 값
@@ -770,6 +769,7 @@ function importData(ev){
 }
 
 /* ===== init ===== */
+seedDefaults();
 renderTabs();render();
 </script>
 </body>
