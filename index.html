@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>강몽실 공주 건강수첩 🐾</title>
+<style>
+  :root{
+    --pink:#E86A92; --pink-soft:#FCEEF3; --purple:#7C5CC4; --purple-soft:#F2EEFB;
+    --ink:#2C2330; --gray:#8A8295; --line:#EFE9F2; --bg:#FBF8FC;
+    --green:#3FA66A; --amber:#E8911E; --red:#E0455A; --card:#ffffff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;padding-bottom:78px;}
+  .wrap{max-width:560px;margin:0 auto;}
+  /* header / profile */
+  .profile{background:linear-gradient(135deg,#E86A92,#7C5CC4);color:#fff;padding:18px 18px 20px;
+    border-radius:0 0 22px 22px;box-shadow:0 6px 20px rgba(124,92,196,.25);position:relative;}
+  .profile h1{margin:0;font-size:22px;display:flex;align-items:center;gap:8px;}
+  .profile .sub{opacity:.92;font-size:13px;margin-top:2px;}
+  .pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px;}
+  .pcell{background:rgba(255,255,255,.16);border-radius:12px;padding:9px 11px;backdrop-filter:blur(4px);}
+  .pcell .k{font-size:11px;opacity:.85;}
+  .pcell .v{font-size:16px;font-weight:700;margin-top:1px;}
+  .editbtn{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.22);border:none;color:#fff;
+    width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;}
+  .alert-line{margin-top:12px;background:rgba(255,255,255,.16);border-radius:10px;padding:8px 11px;font-size:12.5px;display:none;}
+  /* content */
+  .content{padding:16px 16px 10px;}
+  h2.sec{font-size:17px;margin:4px 0 12px;display:flex;align-items:center;gap:7px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:13px;
+    box-shadow:0 2px 8px rgba(124,92,196,.05);}
+  .card h3{margin:0 0 11px;font-size:15px;}
+  label{display:block;font-size:12.5px;color:var(--gray);margin:9px 0 4px;font-weight:600;}
+  input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;
+    font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
+  textarea{resize:vertical;min-height:62px;}
+  .row{display:flex;gap:9px;}
+  .row>div{flex:1;}
+  .seg{display:flex;gap:6px;}
+  .seg button{flex:1;padding:9px 0;border:1px solid var(--line);background:#fff;border-radius:9px;
+    font-size:13px;cursor:pointer;color:var(--gray);font-weight:600;}
+  .seg button.on{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .btn{background:var(--pink);color:#fff;border:none;padding:12px;border-radius:11px;font-size:15px;
+    font-weight:700;width:100%;cursor:pointer;margin-top:14px;}
+  .btn:active{opacity:.85;}
+  .btn.sec{background:var(--purple-soft);color:var(--purple);}
+  .chip{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:700;}
+  .chip.g{background:#E5F5EC;color:var(--green);} .chip.a{background:#FCF1DF;color:var(--amber);}
+  .chip.r{background:#FCE6E9;color:var(--red);} .chip.n{background:var(--purple-soft);color:var(--purple);}
+  .li{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;background:#fff;position:relative;}
+  .li .date{font-size:12px;color:var(--gray);font-weight:700;}
+  .li .body{font-size:13.5px;margin-top:5px;}
+  .li .del{position:absolute;top:10px;right:11px;background:none;border:none;color:#D9C9DE;font-size:18px;cursor:pointer;}
+  .empty{text-align:center;color:var(--gray);font-size:13px;padding:22px 0;}
+  .small{font-size:11.5px;color:var(--gray);}
+  .hint{background:var(--purple-soft);border-radius:11px;padding:10px 12px;font-size:12.5px;color:#5A4A82;margin-bottom:13px;}
+  /* dashboard tiles */
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:6px;}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px;}
+  .tile .t{font-size:12px;color:var(--gray);font-weight:600;}
+  .tile .big{font-size:21px;font-weight:800;margin-top:3px;}
+  .tile .u{font-size:12px;color:var(--gray);font-weight:600;}
+  /* svg chart */
+  .chartwrap{overflow-x:auto;}
+  svg.chart{display:block;width:100%;height:auto;}
+  /* checklist */
+  .check{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .check:last-child{border-bottom:none;}
+  .check input{width:20px;height:20px;flex:none;accent-color:var(--red);}
+  /* tabbar */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;max-width:560px;margin:0 auto;z-index:50;box-shadow:0 -3px 14px rgba(124,92,196,.07);}
+  .tabbar button{flex:1;border:none;background:none;padding:7px 0 6px;font-size:9.5px;color:var(--gray);
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600;}
+  .tabbar button .ic{font-size:18px;}
+  .tabbar button.on{color:var(--pink);}
+  .tabbar button.on .ic{transform:scale(1.12);}
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(44,35,48,.5);display:none;align-items:flex-end;
+    justify-content:center;z-index:100;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px 26px;
+    max-height:88vh;overflow-y:auto;}
+  .modal h3{margin:0 0 6px;}
+  .danger{font-size:14px;padding:11px 13px;border-radius:11px;background:#FCE6E9;color:#A82435;
+    margin-bottom:8px;display:flex;gap:9px;align-items:flex-start;}
+  .danger b{display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- PROFILE (fixed top) -->
+  <div class="profile">
+    <button class="editbtn" onclick="openProfile()">✏️</button>
+    <h1>🐩 <span id="pName">강몽실 공주</span></h1>
+    <div class="sub" id="pSub">기본 정보를 입력해 주세요</div>
+    <div class="pgrid">
+      <div class="pcell"><div class="k">견종</div><div class="v" id="pBreed">—</div></div>
+      <div class="pcell"><div class="k">나이</div><div class="v" id="pAge">—</div></div>
+      <div class="pcell"><div class="k">체중</div><div class="v" id="pWeight">—</div></div>
+      <div class="pcell"><div class="k">단골 병원</div><div class="v" id="pVet">—</div></div>
+    </div>
+    <div class="alert-line" id="pAllergy"></div>
+  </div>
+
+  <div class="content" id="view"></div>
+</div>
+
+<!-- TABBAR -->
+<div class="tabbar" id="tabbar"></div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+/* ---------- storage ---------- */
+const KEY="mongsil_care_v1";
+const blank={
+  profile:{name:"강몽실 공주",breed:"",birth:"",weight:"",allergies:"",history:"",vet:"",vetPhone:""},
+  lymph:[], daily:[], weight:[], bark:[], vet:[], care:[]
+};
+let DB=load();
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));return r?Object.assign({},blank,r):structuredClone(blank);}catch(e){return structuredClone(blank);}}
+function save(){localStorage.setItem(KEY,JSON.stringify(DB));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+const today=()=>new Date().toISOString().slice(0,10);
+
+/* ---------- helpers ---------- */
+function ageStr(birth){
+  if(!birth)return "—";
+  const b=new Date(birth),n=new Date();
+  let y=n.getFullYear()-b.getFullYear();
+  let m=n.getMonth()-b.getMonth();
+  if(n.getDate()<b.getDate())m--;
+  if(m<0){y--;m+=12;}
+  if(y<=0)return m+"개월";
+  return y+"세 "+m+"개월";
+}
+function dday(dateStr){
+  if(!dateStr)return null;
+  const d=new Date(dateStr+"T00:00:00"), n=new Date(today()+"T00:00:00");
+  return Math.round((d-n)/86400000);
+}
+function ddayLabel(n){
+  if(n===null)return "";
+  if(n===0)return "D-DAY";
+  return n>0?"D-"+n:"D+"+Math.abs(n);
+}
+function fmt(d){return d?d.replace(/-/g,".").slice(2):"";}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------- svg line chart ---------- */
+function lineChart(data,opt={}){
+  // data: [{label, value}]  oldest→newest
+  if(!data.length)return '<div class="empty">데이터가 쌓이면 그래프가 표시됩니다</div>';
+  const W=Math.max(300,data.length*54), H=160, pad={l:34,r:14,t:16,b:26};
+  const xs=W-pad.l-pad.r, ys=H-pad.t-pad.b;
+  const vals=data.map(d=>d.value);
+  let mn=Math.min(...vals), mx=Math.max(...vals);
+  if(mn===mx){mn-=1;mx+=1;}
+  const padv=(mx-mn)*0.15; mn-=padv; mx+=padv;
+  const X=i=>pad.l+(data.length===1?xs/2:xs*i/(data.length-1));
+  const Y=v=>pad.t+ys-ys*(v-mn)/(mx-mn);
+  const col=opt.color||"#7C5CC4";
+  let pts=data.map((d,i)=>X(i)+","+Y(d.value)).join(" ");
+  let dots=data.map((d,i)=>`<circle cx="${X(i)}" cy="${Y(d.value)}" r="3.5" fill="${col}"/>
+    <text x="${X(i)}" y="${Y(d.value)-9}" font-size="10" fill="${col}" text-anchor="middle" font-weight="700">${d.value}</text>`).join("");
+  let labs=data.map((d,i)=>`<text x="${X(i)}" y="${H-8}" font-size="9" fill="#8A8295" text-anchor="middle">${d.label}</text>`).join("");
+  // gridlines
+  let grid="";
+  for(let g=0;g<=2;g++){const v=mn+(mx-mn)*g/2;const y=Y(v);
+    grid+=`<line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#EFE9F2"/>
+    <text x="4" y="${y+3}" font-size="9" fill="#B8AEC0">${(Math.round(v*10)/10)}</text>`;}
+  return `<div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    ${grid}<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>${dots}${labs}</svg></div>`;
+}
+
+/* ---------- tabs ---------- */
+const TABS=[
+  {id:"home", ic:"🏠", t:"대시보드"},
+  {id:"lymph",ic:"🔍", t:"림프절"},
+  {id:"daily",ic:"📋", t:"컨디션"},
+  {id:"weight",ic:"⚖️", t:"체중"},
+  {id:"bark", ic:"🎾", t:"바크먼트"},
+  {id:"vet",  ic:"🏥", t:"병원"},
+  {id:"care", ic:"📅", t:"정기관리"},
+  {id:"emerg",ic:"🚨", t:"응급기준"},
+];
+let cur="home";
+function renderTabs(){
+  document.getElementById("tabbar").innerHTML=TABS.map(t=>
+    `<button class="${t.id===cur?'on':''}" onclick="go('${t.id}')"><span class="ic">${t.ic}</span>${t.t}</button>`).join("");
+}
+function go(id){cur=id;renderTabs();render();window.scrollTo(0,0);}
+
+/* ---------- profile header ---------- */
+function renderProfile(){
+  const p=DB.profile;
+  document.getElementById("pName").textContent=p.name||"강몽실 공주";
+  document.getElementById("pSub").textContent=p.birth?("🎂 "+fmt(p.birth)+" 출생"):"기본 정보를 입력해 주세요 (✏️)";
+  document.getElementById("pBreed").textContent=p.breed||"—";
+  document.getElementById("pAge").textContent=ageStr(p.birth);
+  const lastW=DB.weight.length?DB.weight[DB.weight.length-1].kg:p.weight;
+  document.getElementById("pWeight").textContent=lastW?lastW+" kg":"—";
+  document.getElementById("pVet").textContent=p.vet||"—";
+  const al=document.getElementById("pAllergy");
+  if(p.allergies||p.history){
+    al.style.display="block";
+    al.innerHTML=(p.allergies?"⚠️ 알러지: "+esc(p.allergies):"")+(p.allergies&&p.history?" · ":"")+(p.history?"📌 기왕력: "+esc(p.history):"");
+  }else al.style.display="none";
+}
+
+/* ---------- render router ---------- */
+function render(){
+  renderProfile();
+  const v=document.getElementById("view");
+  v.innerHTML=({home:vHome,lymph:vLymph,daily:vDaily,weight:vWeight,bark:vBark,vet:vVet,care:vCare,emerg:vEmerg}[cur])();
+}
+
+/* ===== DASHBOARD ===== */
+function vHome(){
+  const L=DB.lymph[DB.lymph.length-1];
+  const W=DB.weight[DB.weight.length-1];
+  // upcoming care
+  const up=DB.care.map(c=>({...c,d:dday(c.nextDate)})).filter(c=>c.d!==null).sort((a,b)=>a.d-b.d);
+  const next=up[0];
+  let tiles=`<div class="tiles">
+    <div class="tile"><div class="t">🔍 최근 림프절(좌/우)</div><div class="big">${L?`${L.left||'-'}/${L.right||'-'}<span class="u"> mm</span>`:'<span class="u">기록 없음</span>'}</div><div class="small">${L?fmt(L.date):'림프절 탭에서 첫 기록'}</div></div>
+    <div class="tile"><div class="t">⚖️ 최근 체중</div><div class="big">${W?`${W.kg}<span class="u"> kg</span>`:'<span class="u">기록 없음</span>'}</div><div class="small">${W?fmt(W.date):'체중 탭에서 기록'}</div></div>
+  </div>`;
+  let careCard;
+  if(next){
+    const cl=next.d<0?'r':next.d<=14?'a':'n';
+    careCard=`<div class="card"><h3>📅 다가오는 일정</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><b>${esc(next.type)}</b><div class="small">${fmt(next.nextDate)}</div></div>
+        <span class="chip ${cl}">${ddayLabel(next.d)}</span></div>
+      ${up.length>1?`<div class="small" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px">다음: ${up.slice(1,3).map(c=>esc(c.type)+" ("+ddayLabel(c.d)+")").join(" · ")}</div>`:''}</div>`;
+  }else{
+    careCard=`<div class="card"><h3>📅 다가오는 일정</h3><div class="empty">정기관리 탭에서 일정을 등록하세요</div></div>`;
+  }
+  // lymph chart (last 10) — left & right combined? show both lines simply via two charts
+  const lymphData=DB.lymph.slice(-10).map(x=>({label:fmt(x.date),value:Math.max(x.left||0,x.right||0)}));
+  const weightData=DB.weight.slice(-10).map(x=>({label:fmt(x.date),value:+x.kg}));
+  return `
+    <h2 class="sec">🏠 대시보드</h2>
+    ${tiles}
+    ${careCard}
+    <div class="card"><h3>🔍 림프절 추이 <span class="small">(좌·우 중 큰 값, mm)</span></h3>${lineChart(lymphData,{color:'#E86A92'})}</div>
+    <div class="card"><h3>⚖️ 체중 추이 <span class="small">(kg)</span></h3>${lineChart(weightData,{color:'#7C5CC4'})}</div>
+  `;
+}
+
+/* ===== LYMPH ===== */
+let lymphForm={left:"",right:"",sym:"",firm:"",pain:"",motion:"",note:""};
+function vLymph(){
+  const list=[...DB.lymph].reverse().map(x=>{
+    const tags=[x.sym&&`대칭:${x.sym}`,x.firm&&`경도:${x.firm}`,x.pain&&`통증:${x.pain}`,x.motion&&`가동:${x.motion}`].filter(Boolean);
+    return `<div class="li"><button class="del" onclick="delItem('lymph','${x.id}')">×</button>
+      <div class="date">${fmt(x.date)}</div>
+      <div class="body"><b style="font-size:16px">좌 ${x.left||'-'} / 우 ${x.right||'-'} mm</b>
+      ${tags.length?'<div class="small" style="margin-top:4px">'+tags.map(esc).join(' · ')+'</div>':''}
+      ${x.note?'<div style="margin-top:5px">'+esc(x.note)+'</div>':''}</div></div>`;
+  }).join("");
+  const segs=(name,opts)=>`<div class="seg">${opts.map(o=>`<button class="${lymphForm[name]===o?'on':''}" onclick="setLF('${name}','${o}')">${o}</button>`).join("")}</div>`;
+  return `
+    <h2 class="sec">🔍 림프절 모니터링</h2>
+    <div class="hint">📏 하악(턱밑) 림프절을 좌·우 따로 측정해 주세요. 정상은 보통 콩알 크기이며, <b>2~4주 간격</b> 측정으로 추이를 보는 게 핵심입니다. 갑자기 커지거나 단단·고정되면 병원 진료를 권합니다.</div>
+    <div class="card"><h3>오늘 측정 기록</h3>
+      <div class="row"><div><label>좌측 (mm)</label><input id="lfL" type="number" step="0.5" inputmode="decimal" placeholder="예: 8"></div>
+      <div><label>우측 (mm)</label><input id="lfR" type="number" step="0.5" inputmode="decimal" placeholder="예: 8"></div></div>
+      <label>좌우 대칭</label>${segs('sym',['대칭','약간차이','비대칭'])}
+      <label>단단함</label>${segs('firm',['말랑','보통','단단'])}
+      <label>통증 반응</label>${segs('pain',['없음','약간','있음'])}
+      <label>움직임(가동성)</label>${segs('motion',['잘움직임','약간고정','고정'])}
+      <label>메모 (사진은 갤러리에 저장하고 메모만 권장)</label>
+      <textarea id="lfNote" placeholder="예: 좌측 살짝 커진 느낌. 사진→폰 갤러리 '몽실_림프절' 앨범"></textarea>
+      <button class="btn" onclick="addLymph()">＋ 기록 저장</button>
+    </div>
+    ${list||'<div class="empty">아직 기록이 없습니다. 첫 측정으로 기준선을 만들어 주세요 🐾</div>'}
+  `;
+}
+function setLF(k,v){lymphForm[k]=lymphForm[k]===v?"":v;render();}
+function addLymph(){
+  lymphForm.left=document.getElementById("lfL").value;
+  lymphForm.right=document.getElementById("lfR").value;
+  lymphForm.note=document.getElementById("lfNote").value;
+  if(!lymphForm.left&&!lymphForm.right){alert("좌측 또는 우측 크기를 입력해 주세요");return;}
+  DB.lymph.push({id:uid(),date:today(),left:lymphForm.left,right:lymphForm.right,
+    sym:lymphForm.sym,firm:lymphForm.firm,pain:lymphForm.pain,motion:lymphForm.motion,note:lymphForm.note});
+  DB.lymph.sort((a,b)=>a.date.localeCompare(b.date));
+  lymphForm={left:"",right:"",sym:"",firm:"",pain:"",motion:"",note:""};
+  save();render();
+}
+
+/* ===== DAILY ===== */
+let dailyForm={appetite:"",activity:"",stool:"",note:""};
+function vDaily(){
+  const list=[...DB.daily].reverse().map(x=>`<div class="li"><button class="del" onclick="delItem('daily','${x.id}')">×</button>
+    <div class="date">${fmt(x.date)}</div>
+    <div class="body">🍚 식욕 <b>${x.appetite||'-'}</b> · 🏃 활동 <b>${x.activity||'-'}</b> · 💩 배변 <b>${x.stool||'-'}</b>
+    ${x.note?'<div style="margin-top:5px">'+esc(x.note)+'</div>':''}</div></div>`).join("");
+  const segs=(name,opts)=>`<div class="seg">${opts.map(o=>`<button class="${dailyForm[name]===o?'on':''}" onclick="setDF('${name}','${o}')">${o}</button>`).join("")}</div>`;
+  return `
+    <h2 class="sec">📋 일일 컨디션 <span class="small">(30초 입력)</span></h2>
+    <div class="card"><h3>오늘 ${fmt(today())}</h3>
+      <label>식욕</label>${segs('appetite',['상','중','하'])}
+      <label>활동량</label>${segs('activity',['활발','보통','쳐짐'])}
+      <label>배변 상태</label>${segs('stool',['정상','무름','설사','변비'])}
+      <label>특이사항</label><textarea id="dfNote" placeholder="구토, 기침, 가려움 등 (없으면 비워두기)"></textarea>
+      <button class="btn" onclick="addDaily()">＋ 오늘 컨디션 저장</button>
+      <div class="small" style="margin-top:8px;text-align:center">같은 날짜는 자동으로 덮어씁니다</div>
+    </div>
+    ${list||'<div class="empty">오늘 컨디션을 기록해 보세요</div>'}
+  `;
+}
+function setDF(k,v){dailyForm[k]=dailyForm[k]===v?"":v;render();}
+function addDaily(){
+  dailyForm.note=document.getElementById("dfNote").value;
+  if(!dailyForm.appetite&&!dailyForm.activity&&!dailyForm.stool&&!dailyForm.note){alert("항목을 하나 이상 선택해 주세요");return;}
+  DB.daily=DB.daily.filter(x=>x.date!==today());
+  DB.daily.push({id:uid(),date:today(),...dailyForm});
+  DB.daily.sort((a,b)=>a.date.localeCompare(b.date));
+  dailyForm={appetite:"",activity:"",stool:"",note:""};
+  save();render();
+}
+
+/* ===== WEIGHT ===== */
+function vWeight(){
+  const data=DB.weight.slice(-12).map(x=>({label:fmt(x.date),value:+x.kg}));
+  const list=[...DB.weight].reverse().map((x,i,arr)=>{
+    return `<div class="li"><button class="del" onclick="delItem('weight','${x.id}')">×</button>
+      <div class="date">${fmt(x.date)}</div><div class="body"><b style="font-size:16px">${x.kg} kg</b>${x.note?' · '+esc(x.note):''}</div></div>`;
+  }).join("");
+  return `
+    <h2 class="sec">⚖️ 체중 기록</h2>
+    <div class="card"><h3>추이 그래프</h3>${lineChart(data,{color:'#7C5CC4'})}</div>
+    <div class="card"><h3>새 기록</h3>
+      <div class="row"><div><label>날짜</label><input id="wDate" type="date" value="${today()}"></div>
+      <div><label>체중 (kg)</label><input id="wKg" type="number" step="0.01" inputmode="decimal" placeholder="예: 4.20"></div></div>
+      <label>메모</label><input id="wNote" placeholder="예: 식후 측정">
+      <button class="btn" onclick="addWeight()">＋ 저장</button>
+    </div>
+    ${list||'<div class="empty">아직 체중 기록이 없습니다</div>'}
+  `;
+}
+function addWeight(){
+  const kg=document.getElementById("wKg").value, d=document.getElementById("wDate").value;
+  if(!kg){alert("체중을 입력해 주세요");return;}
+  DB.weight=DB.weight.filter(x=>x.date!==d);
+  DB.weight.push({id:uid(),date:d,kg:(+kg).toString(),note:document.getElementById("wNote").value});
+  DB.weight.sort((a,b)=>a.date.localeCompare(b.date));
+  save();render();
+}
+
+/* ===== BARK (바크먼트) ===== */
+function vBark(){
+  const list=[...DB.bark].reverse().map(x=>`<div class="li"><button class="del" onclick="delItem('bark','${x.id}')">×</button>
+    <div class="date">${fmt(x.date)}${x.cond?' · <span class="chip n">'+esc(x.cond)+'</span>':''}</div>
+    <div class="body">${esc(x.content).replace(/\n/g,'<br>')}</div></div>`).join("");
+  return `
+    <h2 class="sec">🎾 바크먼트 세션</h2>
+    <div class="card"><h3>세션 기록</h3>
+      <label>날짜</label><input id="bDate" type="date" value="${today()}">
+      <label>운동 내용</label><textarea id="bContent" placeholder="예: 노즈워크 20분 + 터그놀이 / 합정 실내 / 계단 오르기 5세트"></textarea>
+      <label>컨디션 메모</label><input id="bCond" placeholder="예: 후반 지침 / 매우 활발">
+      <button class="btn" onclick="addBark()">＋ 세션 저장</button>
+    </div>
+    ${list||'<div class="empty">첫 바크먼트 세션을 기록해 보세요 🎾</div>'}
+  `;
+}
+function addBark(){
+  const c=document.getElementById("bContent").value;
+  if(!c){alert("운동 내용을 입력해 주세요");return;}
+  DB.bark.push({id:uid(),date:document.getElementById("bDate").value,content:c,cond:document.getElementById("bCond").value});
+  DB.bark.sort((a,b)=>a.date.localeCompare(b.date));
+  save();render();
+}
+
+/* ===== VET ===== */
+function vVet(){
+  const list=[...DB.vet].reverse().map(x=>{
+    const d=dday(x.next);
+    return `<div class="li"><button class="del" onclick="delItem('vet','${x.id}')">×</button>
+      <div class="date">${fmt(x.date)} · ${esc(x.hospital||'')}</div>
+      <div class="body">${esc(x.content).replace(/\n/g,'<br>')}
+      ${x.rx?'<div style="margin-top:5px">💊 '+esc(x.rx)+'</div>':''}
+      ${x.next?`<div style="margin-top:7px">📌 다음 방문 ${fmt(x.next)} <span class="chip ${d<0?'r':d<=7?'a':'n'}">${ddayLabel(d)}</span></div>`:''}</div></div>`;
+  }).join("");
+  return `
+    <h2 class="sec">🏥 병원 방문 기록</h2>
+    <div class="card"><h3>방문 기록</h3>
+      <div class="row"><div><label>날짜</label><input id="vDate" type="date" value="${today()}"></div>
+      <div><label>병원</label><input id="vHosp" placeholder="병원명" value="${esc(DB.profile.vet||'')}"></div></div>
+      <label>진료 내용 / 진단</label><textarea id="vContent" placeholder="예: 하악 림프절 촉진, 초음파 / 양성 소견"></textarea>
+      <label>처방</label><input id="vRx" placeholder="예: 항생제 7일분">
+      <label>다음 방문일</label><input id="vNext" type="date">
+      <button class="btn" onclick="addVet()">＋ 저장</button>
+    </div>
+    ${list||'<div class="empty">병원 방문 기록이 없습니다</div>'}
+  `;
+}
+function addVet(){
+  const c=document.getElementById("vContent").value;
+  if(!c){alert("진료 내용을 입력해 주세요");return;}
+  DB.vet.push({id:uid(),date:document.getElementById("vDate").value,hospital:document.getElementById("vHosp").value,
+    content:c,rx:document.getElementById("vRx").value,next:document.getElementById("vNext").value});
+  DB.vet.sort((a,b)=>a.date.localeCompare(b.date));
+  save();render();
+}
+
+/* ===== CARE (정기 관리) ===== */
+const CARE_PRESETS=["종합 예방접종","광견병","심장사상충 약","켄넬코프","치과 스케일링","미용","구충(내부)","발톱·항문낭"];
+function vCare(){
+  const list=DB.care.map(c=>({...c,d:dday(c.nextDate)})).sort((a,b)=>{
+    if(a.d===null)return 1; if(b.d===null)return -1; return a.d-b.d;});
+  const cards=list.map(c=>{
+    const cl=c.d===null?'n':c.d<0?'r':c.d<=14?'a':'n';
+    const note=c.d===null?'예정일 미정':c.d<0?Math.abs(c.d)+'일 경과':c.d===0?'오늘!':c.d+'일 남음';
+    return `<div class="li"><button class="del" onclick="delItem('care','${c.id}')">×</button>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><b>${esc(c.type)}</b><div class="small">${c.lastDate?'최근 '+fmt(c.lastDate)+' · ':''}${c.cycle?c.cycle+'일 주기':''}</div></div>
+        <div style="text-align:right"><span class="chip ${cl}">${ddayLabel(c.d)}</span><div class="small">${c.nextDate?fmt(c.nextDate):''} · ${note}</div></div>
+      </div></div>`;
+  }).join("");
+  return `
+    <h2 class="sec">📅 정기 관리</h2>
+    <div class="hint">🟧 14일 이내 임박은 <b>주황</b>, 지난 일정은 <b>빨강</b>으로 표시됩니다. 접종·약 투여 후 다음 예정일을 갱신해 주세요.</div>
+    <div class="card"><h3>일정 추가</h3>
+      <label>항목</label>
+      <select id="cType">${CARE_PRESETS.map(p=>`<option>${p}</option>`).join("")}<option value="__custom">+ 직접 입력</option></select>
+      <input id="cCustom" placeholder="직접 입력" style="display:none;margin-top:7px">
+      <div class="row"><div><label>최근 시행일</label><input id="cLast" type="date"></div>
+      <div><label>주기(일, 선택)</label><input id="cCycle" type="number" inputmode="numeric" placeholder="예: 365"></div></div>
+      <label>다음 예정일</label><input id="cNext" type="date">
+      <div class="small" style="margin-top:4px">최근일+주기를 입력하면 예정일이 자동 계산됩니다(직접 지정도 가능)</div>
+      <button class="btn" onclick="addCare()">＋ 추가</button>
+    </div>
+    ${cards||'<div class="empty">예방접종·심장사상충·스케일링·미용 등을 등록하세요</div>'}
+  `;
+}
+function addCare(){
+  const sel=document.getElementById("cType");
+  let type=sel.value==="__custom"?document.getElementById("cCustom").value.trim():sel.value;
+  if(!type){alert("항목을 입력해 주세요");return;}
+  const last=document.getElementById("cLast").value, cycle=document.getElementById("cCycle").value;
+  let next=document.getElementById("cNext").value;
+  if(!next&&last&&cycle){const d=new Date(last+"T00:00:00");d.setDate(d.getDate()+(+cycle));next=d.toISOString().slice(0,10);}
+  DB.care.push({id:uid(),type,lastDate:last,cycle,nextDate:next});
+  save();render();
+}
+
+/* ===== EMERGENCY ===== */
+const EMERG=[
+ "10~15분 이상 멈추지 않는 구토 / 반복 구토",
+ "혈변·흑색변 또는 멈추지 않는 설사",
+ "호흡 곤란, 잇몸·혀가 파랗거나 창백함",
+ "쓰러짐·발작·의식 저하",
+ "복부가 갑자기 부풀고 헛구역질 (위염전 의심)",
+ "체온 39.5℃ 이상 또는 37℃ 이하",
+ "24시간 이상 아무것도 먹지 않음 / 물도 거부",
+ "소변을 못 보거나 배뇨 시 심한 통증",
+ "심한 무기력, 일어서지 못함",
+ "외상·출혈이 멈추지 않음",
+];
+const EMERG_LYMPH=[
+ "림프절이 단기간(수일~2주)에 눈에 띄게 커짐",
+ "좌우 여러 부위(턱밑·겨드랑·사타구니) 동시에 커짐",
+ "단단하고 고정되어 잘 움직이지 않음",
+ "발열·식욕저하·체중감소·무기력 동반",
+];
+function vEmerg(){
+  const p=DB.profile;
+  return `
+    <h2 class="sec">🚨 응급 판단 기준 <span class="small">(참고용)</span></h2>
+    <div class="card" style="border-color:#F6C9D1">
+      <h3 style="color:var(--red)">⛔ 즉시 병원에 가야 하는 증상</h3>
+      ${EMERG.map((e,i)=>`<div class="check"><input type="checkbox" id="em${i}"><label for="em${i}" style="margin:0;color:var(--ink);font-weight:500">${e}</label></div>`).join("")}
+    </div>
+    <div class="card" style="border-color:#E6D9F2">
+      <h3 style="color:var(--purple)">🔍 림프절 관련 — 진료 권장 신호</h3>
+      ${EMERG_LYMPH.map((e,i)=>`<div class="check"><input type="checkbox" id="el${i}"><label for="el${i}" style="margin:0;color:var(--ink);font-weight:500">${e}</label></div>`).join("")}
+    </div>
+    <div class="card" style="background:var(--pink-soft);border-color:#F6C9D1">
+      <h3>📇 몽실 공주 응급 정보 카드</h3>
+      <div class="small" style="line-height:1.9">
+        🐩 이름: <b>${esc(p.name||'강몽실 공주')}</b><br>
+        🐾 견종: <b>${esc(p.breed||'—')}</b> · 나이 <b>${ageStr(p.birth)}</b><br>
+        ⚖️ 체중: <b>${DB.weight.length?DB.weight[DB.weight.length-1].kg+' kg':(p.weight?p.weight+' kg':'—')}</b><br>
+        ⚠️ 알러지: <b>${esc(p.allergies||'—')}</b><br>
+        📌 기왕력: <b>${esc(p.history||'—')}</b><br>
+        🏥 단골 병원: <b>${esc(p.vet||'—')}</b> ${p.vetPhone?'<a href="tel:'+esc(p.vetPhone)+'">📞 '+esc(p.vetPhone)+'</a>':''}
+      </div>
+      <button class="btn sec" onclick="openProfile()" style="margin-top:12px">정보 수정하기</button>
+    </div>
+    <div class="small" style="text-align:center;padding:6px 0 4px">※ 본 체크리스트는 참고용이며 진단을 대체하지 않습니다. 의심되면 수의사와 상담하세요.</div>
+  `;
+}
+
+/* ===== shared delete ===== */
+function delItem(coll,id){
+  if(!confirm("이 기록을 삭제할까요?"))return;
+  DB[coll]=DB[coll].filter(x=>x.id!==id);save();render();
+}
+
+/* ===== profile modal ===== */
+function openProfile(){
+  const p=DB.profile;
+  document.getElementById("modalBody").innerHTML=`
+    <h3>✏️ 몽실 공주 기본 정보</h3>
+    <label>이름</label><input id="mName" value="${esc(p.name)}">
+    <label>견종</label><input id="mBreed" value="${esc(p.breed)}" placeholder="예: 토이푸들">
+    <label>생년월일</label><input id="mBirth" type="date" value="${esc(p.birth)}">
+    <label>현재 체중 (kg)</label><input id="mWeight" type="number" step="0.01" inputmode="decimal" value="${esc(p.weight)}" placeholder="예: 4.2">
+    <label>알러지</label><input id="mAllergy" value="${esc(p.allergies)}" placeholder="예: 닭고기, 특정 약물">
+    <label>기왕력 / 특이사항</label><textarea id="mHistory" placeholder="예: 슬개골 탈구 1기, 과거 외이염">${esc(p.history)}</textarea>
+    <label>단골 병원</label><input id="mVet" value="${esc(p.vet)}" placeholder="예: VIP 동물병원">
+    <label>병원 연락처</label><input id="mVetPhone" type="tel" value="${esc(p.vetPhone)}" placeholder="예: 032-000-0000">
+    <button class="btn" onclick="saveProfile()">저장</button>
+    <button class="btn sec" onclick="closeModal()">취소</button>
+    <div style="border-top:1px solid var(--line);margin:18px 0 0;padding-top:14px">
+      <button class="btn sec" onclick="exportData()" style="margin-top:0">⬇️ 데이터 백업(JSON 내보내기)</button>
+      <label style="text-align:center;display:block">⬆️ 백업 파일 불러오기</label>
+      <input type="file" accept="application/json" onchange="importData(event)">
+    </div>`;
+  document.getElementById("modalBg").classList.add("show");
+}
+function closeModal(){document.getElementById("modalBg").classList.remove("show");}
+function saveProfile(){
+  DB.profile={name:val("mName")||"강몽실 공주",breed:val("mBreed"),birth:val("mBirth"),weight:val("mWeight"),
+    allergies:val("mAllergy"),history:val("mHistory"),vet:val("mVet"),vetPhone:val("mVetPhone")};
+  // 프로필 체중을 체중 기록에도 반영(같은 날 갱신)
+  if(DB.profile.weight){
+    DB.weight=DB.weight.filter(x=>x.date!==today());
+    DB.weight.push({id:uid(),date:today(),kg:(+DB.profile.weight).toString(),note:"기본정보 입력"});
+    DB.weight.sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  save();closeModal();render();
+}
+const val=id=>{const e=document.getElementById(id);return e?e.value.trim():"";};
+
+/* ===== backup ===== */
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="mongsil_backup_"+today()+".json";a.click();
+}
+function importData(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{try{DB=Object.assign({},blank,JSON.parse(e.target.result));save();closeModal();render();alert("불러오기 완료 🐾");}catch(err){alert("올바른 백업 파일이 아닙니다");}};
+  r.readAsText(f);
+}
+
+/* ===== init ===== */
+renderTabs();render();
+</script>
+</body>
+</html>
