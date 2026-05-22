@@ -143,17 +143,31 @@ const ADERMAS=[
   {name:"래빗볼",brand:"아더마스",type:"간식",kcal100:"189",protein:"23.93",fat:"10.24",fiber:"0.28",unit:"g",note:"토끼 단일단백"},
   {name:"치킨수프 180g",brand:"아더마스",type:"간식",kcal100:"63",protein:"6.77",fat:"0.72",fiber:"0.80",unit:"g",note:"수분 많은 토퍼"}
 ];
+// 레이앤이본(rayvonne) — 화식 요리 라인 + 닥터레이 마그네타. 화식 kcal은 네이버 스토어 비공개라
+// 팩 라벨('칼로리 ○kcal/1팩')을 보고 입력. 신장관리식은 재판매처 확인값(120.2kcal/100g) 사전입력.
+const RAYVONNE=[
+  {name:"레이앤이본 화식 닭",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"팩 라벨 '칼로리 ○kcal/1팩(100g)' 입력"},
+  {name:"레이앤이본 화식 오리",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"팩 라벨 '칼로리 ○kcal/1팩(100g)' 입력"},
+  {name:"레이앤이본 화식 소고기",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"팩 라벨 '칼로리 ○kcal/1팩(100g)' 입력"},
+  {name:"레이앤이본 화식 양고기",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"지방·나트륨 낮은 편 · 팩 라벨 kcal 입력"},
+  {name:"레이앤이본 화식 사슴고기",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"제주산 꽃사슴 · 팩 라벨 kcal 입력"},
+  {name:"레이앤이본 신장관리식 닭고기",brand:"레이앤이본",type:"주식",kcal100:"120.2",protein:"5.48",fat:"4.18",fiber:"1.64",unit:"g",note:"1팩 100g/120.2kcal · 신장처방식(해당 시)"},
+  {name:"닥터레이 마그네타",brand:"레이앤이본",type:"영양제",kcal100:"",protein:"",fat:"",fiber:"",unit:"포",note:"권장 용량은 패키지 확인"}
+];
 function seedDefaults(){
   if(!DB.products)DB.products=[];
   if(!DB.feed)DB.feed=[];
-  // 최초 1회: 레이앤이본 placeholder (영양값은 라벨 보고 직접 입력)
-  if(!DB._seeded){
-    DB.products.push(
-      {id:uid(),name:"레이앤이본 사료",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"포장 라벨의 100g당 kcal 입력"},
-      {id:uid(),name:"레이앤이본 영양제",brand:"레이앤이본",type:"영양제",kcal100:"",protein:"",fat:"",fiber:"",unit:"정",note:""}
-    );
-    DB._seeded=true;
+  // 레이앤이본 동기화 (화식 라인 + 닥터레이 마그네타). 과거 빈 placeholder 정리
+  if(DB._rayV!==1){
+    DB.products=DB.products.filter(p=>!((p.name==="레이앤이본 사료"||p.name==="레이앤이본 영양제")&&!p.kcal100));
+    RAYVONNE.forEach(a=>{
+      const ex=DB.products.find(p=>p.name===a.name);
+      if(!ex)DB.products.push({id:uid(),...a});
+      else if(!ex.kcal100)Object.assign(ex,a,{id:ex.id});
+    });
+    DB._rayV=1;
   }
+  DB._seeded=true;
   // 아더마스 실제 제품 동기화 (idempotent: 사용자가 직접 채운 값은 보존)
   if(DB._adermasV!==2){
     DB.products=DB.products.filter(p=>!(p.name==="아더마스"&&!p.kcal100)); // 과거 빈 placeholder 제거
