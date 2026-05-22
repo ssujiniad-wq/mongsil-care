@@ -120,11 +120,24 @@
 /* ---------- storage ---------- */
 const KEY="mongsil_care_v1";
 const blank={
-  profile:{name:"강몽실 공주",breed:"",birth:"",weight:"",allergies:"",history:"",vet:"",vetPhone:""},
-  lymph:[], daily:[], weight:[], bark:[], vet:[], care:[]
+  profile:{name:"강몽실 공주",breed:"",birth:"",weight:"",allergies:"",history:"",vet:"",vetPhone:"",targetKcal:""},
+  lymph:[], daily:[], weight:[], bark:[], vet:[], care:[], products:[], feed:[]
 };
 let DB=load();
-function load(){try{const r=JSON.parse(localStorage.getItem(KEY));return r?Object.assign({},blank,r):structuredClone(blank);}catch(e){return structuredClone(blank);}}
+seedDefaults();
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));return r?Object.assign({},structuredClone(blank),r):structuredClone(blank);}catch(e){return structuredClone(blank);}}
+function seedDefaults(){
+  // 최초 1회: 주로 먹는 제품을 미리 등록 (영양값은 라벨 보고 직접 입력)
+  if(DB._seeded)return;
+  if(!DB.products||!DB.products.length){
+    DB.products=[
+      {id:uid(),name:"아더마스",brand:"아더마스",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"포장 라벨의 100g당 kcal 입력"},
+      {id:uid(),name:"레이앤이본 사료",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"포장 라벨의 100g당 kcal 입력"},
+      {id:uid(),name:"레이앤이본 영양제",brand:"레이앤이본",type:"영양제",kcal100:"",protein:"",fat:"",fiber:"",unit:"정",note:""}
+    ];
+  }
+  DB._seeded=true; save();
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(DB));}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 const today=()=>new Date().toISOString().slice(0,10);
@@ -184,6 +197,7 @@ const TABS=[
   {id:"home", ic:"🏠", t:"대시보드"},
   {id:"lymph",ic:"🔍", t:"림프절"},
   {id:"daily",ic:"📋", t:"컨디션"},
+  {id:"feed", ic:"🍚", t:"급여"},
   {id:"weight",ic:"⚖️", t:"체중"},
   {id:"bark", ic:"🎾", t:"바크먼트"},
   {id:"vet",  ic:"🏥", t:"병원"},
@@ -218,7 +232,7 @@ function renderProfile(){
 function render(){
   renderProfile();
   const v=document.getElementById("view");
-  v.innerHTML=({home:vHome,lymph:vLymph,daily:vDaily,weight:vWeight,bark:vBark,vet:vVet,care:vCare,emerg:vEmerg}[cur])();
+  v.innerHTML=({home:vHome,lymph:vLymph,daily:vDaily,feed:vFeed,weight:vWeight,bark:vBark,vet:vVet,care:vCare,emerg:vEmerg}[cur])();
 }
 
 /* ===== DASHBOARD ===== */
@@ -243,6 +257,14 @@ function vHome(){
   }else{
     careCard=`<div class="card"><h3>📅 다가오는 일정</h3><div class="empty">정기관리 탭에서 일정을 등록하세요</div></div>`;
   }
+  // 오늘 급여 칼로리
+  const tfk=DB.feed.filter(f=>f.date===today()).reduce((s,f)=>s+(+f.kcal||0),0);
+  const tgt=+DB.profile.targetKcal||0, rerk=recoKcal();
+  const feedCard=`<div class="card"><h3>🍚 오늘 급여 <span class="small">${fmt(today())}</span></h3>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><b style="font-size:21px">${Math.round(tfk)}</b> <span class="small">kcal 섭취</span></div>
+      <div class="small" style="text-align:right">${tgt?('목표 '+tgt+' kcal · '+Math.round(tfk/tgt*100)+'%'):(rerk?('권장 약 '+rerk+' kcal'):'급여 탭에서 기록')}</div>
+    </div></div>`;
   // lymph chart (last 10) — left & right combined? show both lines simply via two charts
   const lymphData=DB.lymph.slice(-10).map(x=>({label:fmt(x.date),value:Math.max(x.left||0,x.right||0)}));
   const weightData=DB.weight.slice(-10).map(x=>({label:fmt(x.date),value:+x.kg}));
@@ -250,6 +272,7 @@ function vHome(){
     <h2 class="sec">🏠 대시보드</h2>
     ${tiles}
     ${careCard}
+    ${feedCard}
     <div class="card"><h3>🔍 림프절 추이 <span class="small">(좌·우 중 큰 값, mm)</span></h3>${lineChart(lymphData,{color:'#E86A92'})}</div>
     <div class="card"><h3>⚖️ 체중 추이 <span class="small">(kg)</span></h3>${lineChart(weightData,{color:'#7C5CC4'})}</div>
   `;
@@ -327,6 +350,145 @@ function addDaily(){
   DB.daily.sort((a,b)=>a.date.localeCompare(b.date));
   dailyForm={appetite:"",activity:"",stool:"",note:""};
   save();render();
+}
+
+/* ===== FEED (급여: 음식·간식·영양제·약 + 칼로리) ===== */
+let feedSub="주식";
+function nowTime(){return new Date().toTimeString().slice(0,5);}
+function prod(id){return DB.products.find(p=>p.id===id);}
+function recoKcal(){
+  const w=DB.weight.length?+DB.weight[DB.weight.length-1].kg:(+DB.profile.weight||0);
+  if(!w)return 0;
+  return Math.round(70*Math.pow(w,0.75)); // RER(휴식대사량). 일일권장(MER)은 활동계수 1.2~1.6배
+}
+function setFeedSub(s){feedSub=s;render();}
+function vFeed(){
+  const tf=DB.feed.filter(f=>f.date===today());
+  let kcalT=0,protT=0,fatT=0;
+  tf.forEach(f=>{kcalT+=+f.kcal||0;protT+=+f.protein||0;fatT+=+f.fat||0;});
+  const target=+DB.profile.targetKcal||0, rer=recoKcal();
+  const pct=target?Math.round(kcalT/target*100):0;
+  const summary=`<div class="card"><h3>📊 오늘 영양 요약 <span class="small">${fmt(today())}</span></h3>
+    <div class="tiles" style="margin:0">
+      <div class="tile"><div class="t">섭취 칼로리</div><div class="big">${Math.round(kcalT)}<span class="u"> kcal</span></div>
+        <div class="small">${target?`목표 ${target} · ${pct}%`:(rer?`권장 약 ${rer} kcal`:'목표 미설정')}</div></div>
+      <div class="tile"><div class="t">단백질 / 지방</div><div class="big" style="font-size:18px">${Math.round(protT*10)/10} / ${Math.round(fatT*10)/10}<span class="u"> g</span></div>
+        <div class="small">등록된 영양값 기준</div></div>
+    </div>
+    ${target&&kcalT>target*1.1?'<div class="small" style="color:var(--red);margin-top:8px">⚠️ 목표 칼로리를 초과했어요</div>':''}</div>`;
+  const subs=[["주식","🍚 식사"],["간식","🦴 간식"],["영양제","💊 영양제"],["약","💉 약"],["제품","⚙️ 제품"]];
+  const nav=`<div class="seg" style="margin-bottom:13px">${subs.map(s=>`<button class="${feedSub===s[0]?'on':''}" onclick="setFeedSub('${s[0]}')" style="font-size:12px;padding:9px 2px">${s[1]}</button>`).join("")}</div>`;
+  const body=feedSub==="제품"?feedProductPanel():feedLogPanel(feedSub);
+  return `<h2 class="sec">🍚 급여 기록</h2>${summary}${nav}${body}`;
+}
+function feedLogPanel(type){
+  const isFood=(type==="주식"||type==="간식");
+  const prods=DB.products.filter(p=>p.type===type);
+  const opts=`<option value="">— 제품 선택 —</option>`+prods.map(p=>`<option value="${p.id}">${esc(p.name)}${p.brand?' ('+esc(p.brand)+')':''}</option>`).join("");
+  const title={"주식":"식사","간식":"간식","영양제":"영양제","약":"약"}[type];
+  const list=[...DB.feed].filter(f=>f.type===type).reverse().slice(0,50).map(f=>`
+    <div class="li"><button class="del" onclick="delItem('feed','${f.id}')">×</button>
+    <div class="date">${fmt(f.date)} ${f.time||''}</div>
+    <div class="body"><b>${esc(f.name)}</b>${f.amount?' · '+esc(f.amount)+esc(f.unit||''):''}${f.kcal?' · '+Math.round(f.kcal)+' kcal':''}
+    ${f.note?'<div class="small" style="margin-top:3px">'+esc(f.note)+'</div>':''}</div></div>`).join("");
+  const hint=isFood?'제품을 고르고 양(g)을 입력하면 등록된 100g당 kcal로 칼로리가 자동 계산돼요.':
+    (type==="영양제"?'먹인 영양제와 용량을 시간과 함께 기록하세요.':'복용한 약·용량·시간을 기록하세요. 처방약은 🏥병원 탭과 같이 관리하면 좋아요.');
+  return `<div class="hint">${hint}${prods.length?'':' <b>먼저 ⚙️제품에서 제품을 등록</b>하면 칼로리 자동계산이 됩니다.'}</div>
+    <div class="card"><h3>${title} 기록</h3>
+      <div class="row"><div><label>시간</label><input id="fdTime" type="time" value="${nowTime()}"></div>
+        <div><label>${isFood?'양 (g)':'용량'}</label><input id="fdAmt" type="number" step="${isFood?'1':'0.5'}" inputmode="decimal" oninput="feedPrev()" placeholder="${isFood?'예: 50':'예: 1'}"></div></div>
+      <label>제품</label><select id="fdProd" onchange="feedPrev()">${opts}</select>
+      <label>또는 직접 입력</label><input id="fdName" placeholder="등록 안 된 음식/약 이름">
+      ${isFood?'':`<label>단위</label><input id="fdUnit" value="${esc(prods[0]?prods[0].unit:'정')}" placeholder="정 / 포 / ml">`}
+      ${isFood?`<label>kcal 직접 입력 (제품 미선택 시)</label><input id="fdKcal" type="number" inputmode="decimal" oninput="feedPrev()" placeholder="선택">`:''}
+      <label>메모</label><input id="fdNote" placeholder="${isFood?'예: 잘 먹음 / 남김':'예: 식후 / 처방'}">
+      ${isFood?`<div class="small" id="fdPrev" style="margin-top:8px;text-align:center;color:var(--purple);font-weight:700">예상 칼로리: — kcal</div>`:''}
+      <button class="btn" onclick="addFeed('${type}')">＋ 기록 저장</button>
+    </div>
+    ${list||'<div class="empty">기록이 없습니다</div>'}`;
+}
+function feedPrev(){
+  const el=document.getElementById("fdPrev");if(!el)return;
+  const amt=+(val("fdAmt")||0);
+  const sel=document.getElementById("fdProd");
+  const p=sel&&sel.value?prod(sel.value):null;
+  let k=0,warn="";
+  if(p&&p.kcal100&&amt)k=+p.kcal100*amt/100;
+  else if(p&&!p.kcal100)warn=" (제품에 100g당 kcal 미입력)";
+  const mk=+(val("fdKcal")||0);if(!k&&mk)k=mk;
+  el.textContent="예상 칼로리: "+(k?Math.round(k):"—")+" kcal"+warn;
+}
+function addFeed(type){
+  const isFood=(type==="주식"||type==="간식");
+  const amt=val("fdAmt");
+  const sel=document.getElementById("fdProd");
+  const p=sel&&sel.value?prod(sel.value):null;
+  const freeName=val("fdName");
+  if(!p&&!freeName){alert("제품을 선택하거나 이름을 직접 입력해 주세요");return;}
+  if(isFood&&!amt){alert("양(g)을 입력해 주세요");return;}
+  const name=p?p.name:freeName;
+  const unit=isFood?'g':(val("fdUnit")||'');
+  let kcal=0,protein=0,fat=0;
+  if(p&&p.kcal100&&amt)kcal=+p.kcal100*(+amt)/100;
+  const mk=val("fdKcal");if(!kcal&&mk)kcal=+mk;
+  if(p&&p.protein&&amt)protein=+p.protein*(+amt)/100;
+  if(p&&p.fat&&amt)fat=+p.fat*(+amt)/100;
+  DB.feed.push({id:uid(),date:today(),time:val("fdTime"),type,productId:p?p.id:"",name,amount:amt,unit,kcal,protein,fat,note:val("fdNote")});
+  DB.feed.sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")));
+  save();render();
+}
+function feedProductPanel(){
+  const byType={};DB.products.forEach(p=>{(byType[p.type]=byType[p.type]||[]).push(p);});
+  const order=["주식","간식","영양제","약"];
+  const lists=order.filter(t=>byType[t]).map(t=>`<div class="card"><h3>${t}</h3>`+byType[t].map(p=>`
+      <div class="li"><button class="del" onclick="delItem('products','${p.id}')">×</button>
+      <div class="body"><b>${esc(p.name)}</b>${p.brand?' <span class="small">· '+esc(p.brand)+'</span>':''}
+      <div class="small" style="margin-top:3px">${p.kcal100?`🔥 100g당 ${p.kcal100} kcal`:'🔥 kcal 미입력'}${p.protein?` · 단백 ${p.protein}%`:''}${p.fat?` · 지방 ${p.fat}%`:''}${p.unit&&p.unit!=='g'?` · 단위 ${esc(p.unit)}`:''}</div>
+      ${p.note?'<div class="small">'+esc(p.note)+'</div>':''}
+      <button class="btn sec" onclick="editProduct('${p.id}')" style="margin-top:8px;padding:7px">영양정보 수정</button></div></div>`).join("")+`</div>`).join("");
+  return `<div class="hint">자주 먹는 제품을 등록하면 급여 기록 시 칼로리가 자동 계산됩니다. <b>포장 라벨의 100g당 kcal·단백질·지방%</b>를 입력해 두세요. (아더마스·레이앤이본 기본 등록됨 — 영양정보 수정으로 수치 채워주세요)</div>
+    ${lists}
+    <div class="card"><h3>＋ 제품 추가</h3>
+      <label>이름</label><input id="prName" placeholder="예: 아더마스">
+      <div class="row"><div><label>브랜드</label><input id="prBrand" placeholder="예: 레이앤이본"></div>
+        <div><label>종류</label><select id="prType"><option>주식</option><option>간식</option><option>영양제</option><option>약</option></select></div></div>
+      <div class="row"><div><label>100g당 kcal</label><input id="prKcal" type="number" inputmode="decimal" placeholder="라벨 참고"></div>
+        <div><label>단위</label><input id="prUnit" value="g" placeholder="g / 정 / ml"></div></div>
+      <div class="row"><div><label>단백질 %</label><input id="prProt" type="number" inputmode="decimal"></div>
+        <div><label>지방 %</label><input id="prFat" type="number" inputmode="decimal"></div>
+        <div><label>식이섬유 %</label><input id="prFiber" type="number" inputmode="decimal"></div></div>
+      <label>메모</label><input id="prNote" placeholder="선택">
+      <button class="btn" onclick="addProduct()">＋ 등록</button>
+    </div>`;
+}
+function addProduct(){
+  const name=val("prName");if(!name){alert("이름을 입력해 주세요");return;}
+  DB.products.push({id:uid(),name,brand:val("prBrand"),type:document.getElementById("prType").value,
+    kcal100:val("prKcal"),unit:val("prUnit")||'g',protein:val("prProt"),fat:val("prFat"),fiber:val("prFiber"),note:val("prNote")});
+  save();render();
+}
+function editProduct(id){
+  const p=prod(id);if(!p)return;
+  document.getElementById("modalBody").innerHTML=`
+    <h3>⚙️ 제품 수정</h3>
+    <label>이름</label><input id="epName" value="${esc(p.name)}">
+    <div class="row"><div><label>브랜드</label><input id="epBrand" value="${esc(p.brand||'')}"></div>
+      <div><label>종류</label><select id="epType">${["주식","간식","영양제","약"].map(t=>`<option ${p.type===t?'selected':''}>${t}</option>`).join("")}</select></div></div>
+    <div class="row"><div><label>100g당 kcal</label><input id="epKcal" type="number" value="${esc(p.kcal100||'')}"></div>
+      <div><label>단위</label><input id="epUnit" value="${esc(p.unit||'g')}"></div></div>
+    <div class="row"><div><label>단백질 %</label><input id="epProt" type="number" value="${esc(p.protein||'')}"></div>
+      <div><label>지방 %</label><input id="epFat" type="number" value="${esc(p.fat||'')}"></div>
+      <div><label>식이섬유 %</label><input id="epFiber" type="number" value="${esc(p.fiber||'')}"></div></div>
+    <label>메모</label><input id="epNote" value="${esc(p.note||'')}">
+    <button class="btn" onclick="saveProduct('${id}')">저장</button>
+    <button class="btn sec" onclick="closeModal()">취소</button>`;
+  document.getElementById("modalBg").classList.add("show");
+}
+function saveProduct(id){
+  const p=prod(id);if(!p)return;
+  Object.assign(p,{name:val("epName")||p.name,brand:val("epBrand"),type:document.getElementById("epType").value,
+    kcal100:val("epKcal"),unit:val("epUnit")||'g',protein:val("epProt"),fat:val("epFat"),fiber:val("epFiber"),note:val("epNote")});
+  save();closeModal();render();
 }
 
 /* ===== WEIGHT ===== */
@@ -520,6 +682,8 @@ function openProfile(){
     <label>기왕력 / 특이사항</label><textarea id="mHistory" placeholder="예: 슬개골 탈구 1기, 과거 외이염">${esc(p.history)}</textarea>
     <label>단골 병원</label><input id="mVet" value="${esc(p.vet)}" placeholder="예: VIP 동물병원">
     <label>병원 연락처</label><input id="mVetPhone" type="tel" value="${esc(p.vetPhone)}" placeholder="예: 032-000-0000">
+    <label>하루 목표 칼로리 (kcal, 선택)</label><input id="mTargetKcal" type="number" inputmode="decimal" value="${esc(p.targetKcal||'')}" placeholder="비우면 권장량 안내">
+    <div class="small">체중 기반 휴식대사량(RER) 약 <b>${recoKcal()||'—'} kcal</b> · 일일권장(MER)은 활동량에 따라 1.2~1.6배예요</div>
     <button class="btn" onclick="saveProfile()">저장</button>
     <button class="btn sec" onclick="closeModal()">취소</button>
     <div style="border-top:1px solid var(--line);margin:18px 0 0;padding-top:14px">
@@ -532,7 +696,7 @@ function openProfile(){
 function closeModal(){document.getElementById("modalBg").classList.remove("show");}
 function saveProfile(){
   DB.profile={name:val("mName")||"강몽실 공주",breed:val("mBreed"),birth:val("mBirth"),weight:val("mWeight"),
-    allergies:val("mAllergy"),history:val("mHistory"),vet:val("mVet"),vetPhone:val("mVetPhone")};
+    allergies:val("mAllergy"),history:val("mHistory"),vet:val("mVet"),vetPhone:val("mVetPhone"),targetKcal:val("mTargetKcal")};
   // 프로필 체중을 체중 기록에도 반영(같은 날 갱신)
   if(DB.profile.weight){
     DB.weight=DB.weight.filter(x=>x.date!==today());
