@@ -151,7 +151,7 @@ const RAYVONNE=[
   {name:"레이앤이본 소고기 화식",brand:"레이앤이본",type:"주식",kcal100:"118.2",protein:"16.48",fat:"4.90",fiber:"",unit:"g",note:"1팩100g/118.2kcal · 그래스페드"},
   {name:"레이앤이본 닭고기 신장관리식",brand:"레이앤이본",type:"주식",kcal100:"120.2",protein:"5.48",fat:"4.18",fiber:"1.64",unit:"g",note:"1팩100g/120.2kcal · 신장처방식"},
   {name:"레이앤이본 닭고기 췌장관리식",brand:"레이앤이본",type:"주식",kcal100:"82.8",protein:"8.85",fat:"0.97",fiber:"",unit:"g",note:"1팩100g/82.8kcal · 저지방 췌장처방식"},
-  {name:"레이앤이본 양고기 화식",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"저지방·저나트륨 · 팩 라벨 kcal 입력"},
+  {name:"레이앤이본 양고기 화식",brand:"레이앤이본",type:"주식",kcal100:"109.7",protein:"16.29",fat:"4.04",fiber:"0.74",unit:"g",note:"1팩100g/109.7kcal · 그래스페드 양 · 저지방·저나트륨"},
   {name:"레이앤이본 사슴고기 화식",brand:"레이앤이본",type:"주식",kcal100:"",protein:"",fat:"",fiber:"",unit:"g",note:"제주 꽃사슴 · 팩 라벨 kcal 입력"},
   // 간식
   {name:"레이앤이본 촉촉한 닭가슴살 육포 50g",brand:"레이앤이본",type:"간식",kcal100:"245.4",protein:"56.3",fat:"2.1",fiber:"",unit:"g",note:"122.7kcal/50g · 토핑용"},
@@ -164,7 +164,7 @@ function seedDefaults(){
   if(!DB.products)DB.products=[];
   if(!DB.feed)DB.feed=[];
   // 레이앤이본 동기화 (전 라인). 구버전 placeholder/이름 정리 후 최신 카탈로그 반영
-  if(DB._rayV!==2){
+  if(DB._rayV!==3){
     const dropBlank=["레이앤이본 사료","레이앤이본 영양제","레이앤이본 화식 닭","레이앤이본 화식 오리","레이앤이본 화식 소고기","레이앤이본 화식 양고기","레이앤이본 화식 사슴고기"];
     DB.products=DB.products.filter(p=>!((dropBlank.includes(p.name)&&!p.kcal100)||p.name==="레이앤이본 신장관리식 닭고기"));
     RAYVONNE.forEach(a=>{
@@ -172,7 +172,7 @@ function seedDefaults(){
       if(!ex)DB.products.push({id:uid(),...a});
       else if(!ex.kcal100)Object.assign(ex,a,{id:ex.id});
     });
-    DB._rayV=2;
+    DB._rayV=3;
   }
   DB._seeded=true;
   // 아더마스 실제 제품 동기화 (idempotent: 사용자가 직접 채운 값은 보존)
